@@ -158,16 +158,18 @@ class BackupCompareGUI:
 ## Compare Files
 def compareFiles(selected_robots):
     
-    # Determine which file extensions to compare, from json file
+    # Determine which file extensions and files to compare, from json file
     with open("FileExtension.json", "r") as file:
-        json_data = file.read()
-    
-    fileExtensions = (json.loads(json_data))["fileExtensions"]
+        json_data = json.load(file)
+
+    fileExtensions = json_data["fileExtensions"]
+    #print(f"File Extensions: {fileExtensions}")
+    additionalFiles = json_data["additionalFiles"]
+    #print(f"Additional Files: {additionalFiles}")
 
     # Initialize output lines for both columns
     output_lines_current = []
     output_lines_backup = []
-    header_line = "-" * 20
 
     # Iterate over IP addresses and robot names
     for ip_address, robot_name in ip_addresses.items():
@@ -220,14 +222,7 @@ def compareFiles(selected_robots):
             all_output_lines_current = []
             all_output_lines_backup = []
 
-            # Compare each file in CurrentFolder with the corresponding file in BackupFolder
-            for currentFile in currentFiles:
-                # Skip files unless they end with specified file extension from json file (default of .ls and .va)
-                if not any(currentFile.endswith(extension) for extension in fileExtensions):
-                    continue
-
-                start_index = 0
-
+            for currentFile in additionalFiles:
                 # File paths
                 file_path1 = os.path.join(current_project_path, currentFile)
                 file_path2 = os.path.join(backup_project_path, currentFile)
@@ -266,6 +261,9 @@ def compareFiles(selected_robots):
                             break
                     else:
                         start_index = total_lines
+                    
+                    if not currentFile.endswith(".ls"):
+                        start_index = 0
 
                     for i in range(start_index, total_lines):
                         line1 = lines1[i].strip() if i < len(lines1) else ""
@@ -273,13 +271,95 @@ def compareFiles(selected_robots):
                         if line1 != line2:
                             # Output file name if first difference
                             if is_first_difference:
-                                output_line = header_line
+                                output_line = "-" * 20
                                 output_lines_current.append(output_line)
                                 output_lines_backup.append(output_line)
                                 output_line = (currentFile)
                                 output_lines_current.append(output_line)
                                 output_lines_backup.append(output_line)
-                                output_line = header_line
+                                output_line = "-" * 20
+                                output_lines_current.append(output_line)
+                                output_lines_backup.append(output_line)
+
+                                # Set the flag to False after displaying the heading
+                                is_first_difference = False
+
+                            output_line = f"{' ' * 50}Line {i + 1}"
+                            output_lines_current.append(output_line)
+                            output_lines_backup.append(output_line)
+                            output_lines_current.append(line1)
+                            output_lines_backup.append(line2)
+                            output_lines_current.append("")
+                            output_lines_backup.append("")
+
+                    all_output_lines_current.extend(output_lines_current)
+                    all_output_lines_backup.extend(output_lines_backup)
+
+                else:
+                    print(f"File {currentFile} not found in {backup_project_path}. Skipping comparison.")
+
+
+            # Compare each file in CurrentFolder with the corresponding file in BackupFolder
+            for currentFile in currentFiles:
+
+                if currentFile in additionalFiles or not any(currentFile.endswith(extension) for extension in fileExtensions):
+                    continue
+
+                # File paths
+                file_path1 = os.path.join(current_project_path, currentFile)
+                file_path2 = os.path.join(backup_project_path, currentFile)
+                
+                if os.path.isfile(file_path2):
+                    # Read the contents of the files
+                    with open(file_path1, "r") as f1, open(file_path2, "r") as f2:
+                        lines1 = f1.readlines()
+                        lines2 = f2.readlines()
+
+                    # Determine the amount of lines to compare
+                    total_lines = max(len(lines1), len(lines2))
+                    output_lines_current = []
+                    output_lines_backup = []
+
+                    # Display ASCII title line by line
+                    if newRobotFile:
+                        for i in range(7): 
+                            output_line = current_ascii_line[i]
+                            output_lines_current.append(output_line)
+                            output_line = backup_ascii_line[i]
+                            output_lines_backup.append(output_line)
+                        newRobotFile = False
+                    
+                    # Flag to track the first difference
+                    is_first_difference = True
+
+                    # Compare the lines
+                    for i in range(total_lines):
+                        line1 = lines1[i].strip() if i < len(lines1) else ""
+                        line2 = lines2[i].strip() if i < len(lines2) else ""
+
+                        # Ignore header in .ls files. Code starts at /MN
+                        if "/MN" in line1 or "/MN" in line2:
+                            start_index = i
+                            break
+                    else:
+                        start_index = total_lines
+
+                    if not currentFile.endswith(".ls"):
+                        start_index = 0
+
+                    for i in range(start_index, total_lines):
+                        line1 = lines1[i].strip() if i < len(lines1) else ""
+                        line2 = lines2[i].strip() if i < len(lines2) else ""
+                        if line1 != line2:
+                            # Output file name if first difference
+                            if is_first_difference:
+                                output_line = "-" * 20
+                                output_lines_current.append(output_line)
+                                output_lines_backup.append(output_line)
+                                output_line = (currentFile)
+                                output_lines_current.append(output_line)
+                                output_lines_backup.append(output_line)
+                                output_line = "-" * 20
                                 output_lines_current.append(output_line)
                                 output_lines_backup.append(output_line)
 
@@ -316,6 +396,8 @@ def compareFiles(selected_robots):
 
         except Exception as e:
             print(f"Failed to execute comparison for {robot_name}. Please ensure that there is a current file and a backup for this robot.")
+
+
 
 ## Backup func
 def backupFiles(selected_robots):
@@ -394,9 +476,8 @@ def backupFiles(selected_robots):
 
             # List file names
             files = ftp.nlst()
-            
-            print(f"Backing up {robot_name} . . .")
 
+            print(f"Backing up {robot_name} . . .")
             # Download each file to the backup folder
             for file in files:
                 local_path = os.path.join(robot_current_subfolder, file)
