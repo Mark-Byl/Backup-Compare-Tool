@@ -206,108 +206,111 @@ def compareFiles(selected_robots):
         for folder in [robot_current_folder, robot_backup_folder, robot_archive_folder, robot_compare_folder]:
             os.makedirs(folder, exist_ok=True)
 
-        folder_name1 = os.listdir(robot_current_folder)[0]  # Assumes there is only one folder in the current folder
-        folder_name2 = os.listdir(robot_backup_folder)[0]  # Assumes there is only one folder in the backup folder
+        try:
+            folder_name1 = os.listdir(robot_current_folder)[0]  # Assumes there is only one folder in the current folder
+            folder_name2 = os.listdir(robot_backup_folder)[0]  # Assumes there is only one folder in the backup folder
 
-        # Construct the source and destination paths
-        current_project_path = os.path.join(robot_current_folder, folder_name1)
-        backup_project_path = os.path.join(robot_backup_folder, folder_name2)
+            # Construct the source and destination paths
+            current_project_path = os.path.join(robot_current_folder, folder_name1)
+            backup_project_path = os.path.join(robot_backup_folder, folder_name2)
 
-        # Get the list of files in the first folder
-        currentFiles = os.listdir(current_project_path)
+            # Get the list of files in the first folder
+            currentFiles = os.listdir(current_project_path)
 
-        # List for output lines
-        all_output_lines_current = []
-        all_output_lines_backup = []
+            # List for output lines
+            all_output_lines_current = []
+            all_output_lines_backup = []
 
-        # Compare each file in CurrentFolder with the corresponding file in BackupFolder
-        for currentFile in currentFiles:
-            # Skip files unless they end with specified file extension from json file (default of .ls and .va)
-            if not any(currentFile.endswith(extension) for extension in fileExtensions):
-                continue
+            # Compare each file in CurrentFolder with the corresponding file in BackupFolder
+            for currentFile in currentFiles:
+                # Skip files unless they end with specified file extension from json file (default of .ls and .va)
+                if not any(currentFile.endswith(extension) for extension in fileExtensions):
+                    continue
 
-            start_index = 0
+                start_index = 0
 
-            # File paths
-            file_path1 = os.path.join(current_project_path, currentFile)
-            file_path2 = os.path.join(backup_project_path, currentFile)
+                # File paths
+                file_path1 = os.path.join(current_project_path, currentFile)
+                file_path2 = os.path.join(backup_project_path, currentFile)
 
-            if os.path.isfile(file_path2):
-                # Read the contents of the files
-                with open(file_path1, "r") as f1, open(file_path2, "r") as f2:
-                    lines1 = f1.readlines()
-                    lines2 = f2.readlines()
+                if os.path.isfile(file_path2):
+                    # Read the contents of the files
+                    with open(file_path1, "r") as f1, open(file_path2, "r") as f2:
+                        lines1 = f1.readlines()
+                        lines2 = f2.readlines()
 
-                # Determine the amount of lines to compare
-                total_lines = max(len(lines1), len(lines2))
-                output_lines_current = []
-                output_lines_backup = []
+                    # Determine the amount of lines to compare
+                    total_lines = max(len(lines1), len(lines2))
+                    output_lines_current = []
+                    output_lines_backup = []
 
-                if newRobotFile:
-                    for i in range(7): 
-                        output_line = current_ascii_line[i]
-                        output_lines_current.append(output_line)
-                        output_line = backup_ascii_line[i]
-                        output_lines_backup.append(output_line)
-                    newRobotFile = False
+                    if newRobotFile:
+                        for i in range(7): 
+                            output_line = current_ascii_line[i]
+                            output_lines_current.append(output_line)
+                            output_line = backup_ascii_line[i]
+                            output_lines_backup.append(output_line)
+                        newRobotFile = False
                     
-                # Flag to track the first difference
-                is_first_difference = True
+                    # Flag to track the first difference
+                    is_first_difference = True
 
-                # Compare the lines
-                for i in range(total_lines):
-                    line1 = lines1[i].strip() if i < len(lines1) else ""
-                    line2 = lines2[i].strip() if i < len(lines2) else ""
+                    # Compare the lines
+                    for i in range(total_lines):
+                        line1 = lines1[i].strip() if i < len(lines1) else ""
+                        line2 = lines2[i].strip() if i < len(lines2) else ""
 
-                    if "/MN" in line1 or "/MN" in line2:
-                        start_index = i
-                        break
+                        if "/MN" in line1 or "/MN" in line2:
+                            start_index = i
+                            break
+                    else:
+                        start_index = total_lines
+
+                    for i in range(start_index, total_lines):
+                        line1 = lines1[i].strip() if i < len(lines1) else ""
+                        line2 = lines2[i].strip() if i < len(lines2) else ""
+                        if line1 != line2:
+                            # Output file name if first difference
+                            if is_first_difference:
+                                output_line = header_line
+                                output_lines_current.append(output_line)
+                                output_lines_backup.append(output_line)
+                                output_line = (currentFile)
+                                output_lines_current.append(output_line)
+                                output_lines_backup.append(output_line)
+                                output_line = header_line
+                                output_lines_current.append(output_line)
+                                output_lines_backup.append(output_line)
+
+                                # Set the flag to False after displaying the heading
+                                is_first_difference = False
+
+                            output_line = f"{' ' * 50}Line {i + 1}"
+                            output_lines_current.append(output_line)
+                            output_lines_backup.append(output_line)
+                            output_lines_current.append(line1)
+                            output_lines_backup.append(line2)
+                            output_lines_current.append("")
+                            output_lines_backup.append("")
+
+                    all_output_lines_current.extend(output_lines_current)
+                    all_output_lines_backup.extend(output_lines_backup)
+
                 else:
-                    start_index = total_lines
+                    print(f"File {currentFile} not found in {backup_project_path}. Skipping comparison.")
 
-                for i in range(start_index, total_lines):
-                    line1 = lines1[i].strip() if i < len(lines1) else ""
-                    line2 = lines2[i].strip() if i < len(lines2) else ""
-                    if line1 != line2:
-                        # Output file name if first difference
-                        if is_first_difference:
-                            output_line = header_line
-                            output_lines_current.append(output_line)
-                            output_lines_backup.append(output_line)
-                            output_line = (currentFile)
-                            output_lines_current.append(output_line)
-                            output_lines_backup.append(output_line)
-                            output_line = header_line
-                            output_lines_current.append(output_line)
-                            output_lines_backup.append(output_line)
+            current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
+            output_file = os.path.join(robot_compare_folder, f"{robot_name} {current_date} - Comparison.txt")
 
-                            # Set the flag to False after displaying the heading
-                            is_first_difference = False
+            with open(output_file, "a", encoding="utf-8") as output:
+                output.write("\n".join(f"   {output_current:<75}  {output_backup}"
+                                    for output_current, output_backup in
+                                    zip(all_output_lines_current, all_output_lines_backup)))
 
-                        output_line = f"{' ' * 50}Line {i + 1}"
-                        output_lines_current.append(output_line)
-                        output_lines_backup.append(output_line)
-                        output_lines_current.append(line1)
-                        output_lines_backup.append(line2)
-                        output_lines_current.append("")
-                        output_lines_backup.append("")
+            print(f"Comparison completed for {robot_name}. The output has been saved to {output_file}.")
 
-                all_output_lines_current.extend(output_lines_current)
-                all_output_lines_backup.extend(output_lines_backup)
-
-            else:
-                print(f"File {currentFile} not found in {backup_project_path}. Skipping comparison.")
-
-        current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
-        output_file = os.path.join(robot_compare_folder, f"{robot_name} {current_date} - Comparison.txt")
-
-        with open(output_file, "a", encoding="utf-8") as output:
-            output.write("\n".join(f"   {output_current:<75}  {output_backup}"
-                                   for output_current, output_backup in
-                                   zip(all_output_lines_current, all_output_lines_backup)))
-
-        print(f"Comparison completed for {robot_name}. The output has been saved to {output_file}.")
-
+        except Exception as e:
+            print(f"Failed to execute comparison for {robot_name}. Please ensure that there is a current file and a backup for this robot.")
 
 ## Backup func
 def backupFiles(selected_robots):
