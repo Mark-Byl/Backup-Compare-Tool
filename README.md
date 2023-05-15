@@ -1,4 +1,4 @@
-# Backup-Compare-Tool
+# Backup Compare Tool
 Custom tool to backup and compare FANUC robots. Coded in Python.
 Created by Mark Byl - 2023
 
