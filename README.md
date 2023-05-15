@@ -10,7 +10,7 @@
 - All folders are automatically created in the path of the python file.
 - Backups are automatically archived when you backup a newer robot program.
 
-# Customizable json files
+# Customization
 - It is currently configured to compare .ls and .va files, but feel free to change this by editing FileExtension.json.
 - You can change the robot names and associated IP addresses by editing RobotInfo.json.
 
