@@ -53,8 +53,8 @@ class BackupCompareGUI:
         self.backup_compare_button = tk.Button(self.root, text="Backup and Compare All", command=self.backup_compare_files)
         self.backup_compare_button.pack(pady=10)
         
-        self.compareTXT_button = tk.Button(self.root, text="View Comparisons", command=self.view_comparisons)
-        self.compareTXT_button.pack(pady=10)
+        self.view_comparison_button = tk.Button(self.root, text="View Comparisons", command=self.view_comparisons)
+        self.view_comparison_button.pack(pady=10)
 
         # Set initial button states
         self.set_button_states(state="normal")
@@ -63,7 +63,7 @@ class BackupCompareGUI:
         self.backup_button["state"] = state
         self.compare_button["state"] = state
         self.backup_compare_button["state"] = state
-        self.compareTXT_button["state"] = state
+        self.view_comparison_button["state"] = state
         
     def backup_files(self):
         if self.backup_button["state"] == "disabled":
@@ -86,7 +86,7 @@ class BackupCompareGUI:
         self.backup_button.update()
         self.compare_button.update()
         self.backup_compare_button.update()
-        self.compareTXT_button.update()
+        self.view_comparison_button.update()
         self.set_button_states(state="normal")      
         
     def compare_files(self):
@@ -106,7 +106,7 @@ class BackupCompareGUI:
         self.backup_button.update()
         self.compare_button.update()
         self.backup_compare_button.update()
-        self.compareTXT_button.update()
+        self.view_comparison_button.update()
         self.set_button_states(state="normal")
 
     def backup_compare_files(self):
@@ -129,7 +129,7 @@ class BackupCompareGUI:
         self.backup_button.update()
         self.compare_button.update()
         self.backup_compare_button.update()
-        self.compareTXT_button.update()
+        self.view_comparison_button.update()
         self.set_button_states(state="normal")
 
     def view_comparisons(self):
@@ -149,7 +149,7 @@ class BackupCompareGUI:
         self.backup_button.update()
         self.compare_button.update()
         self.backup_compare_button.update()
-        self.compareTXT_button.update()
+        self.view_comparison_button.update()
         self.set_button_states(state="normal")
 
     def run(self):
@@ -163,8 +163,6 @@ def compareFiles(selected_robots):
         json_data = file.read()
     
     fileExtensions = (json.loads(json_data))["fileExtensions"]
-    #fileExtensions = a["fileExtensions"]
-    #fileExtensions = json.loads(json_data)
 
     # Initialize output lines for both columns
     output_lines_current = []
@@ -178,21 +176,22 @@ def compareFiles(selected_robots):
 
         # Define ASCII text
         
-        current_ascii_line = ["   ______                           __  ",
-                              "  / ____/_  _______________  ____  / /_ ",
-                              " / /   / / / / ___/ ___/ _ \/ __ \/ __/ ",
-                              "/ /___/ /_/ / /  / /  /  __/ / / / /_   ",
-                              "\____/\__,_/_/  /_/   \___/_/ /_/\__/   ",
-                              "                                        ",
-                              "                                        "]
+        current_ascii_line = ["    ______                                   ", 
+                              "   / _____)                           _      ",
+                              "  | /     _   _  ____ ____ ____ ____ | |_    ",
+                              "  | |    | | | |/ ___) ___) _  )  _ \|  _)   ",
+                              "  | \____| |_| | |  | |  ( (/ /| | | | |__   ",
+                              "   \______)____|_|  |_|   \____)_| |_|\___)  ",
+                              "                                             "]
+                                          
         
-        backup_ascii_line = ["    ____             __              ",
-                             "   / __ )____  _____/ /____  ______  ",
-                             "  / __  / __ `/ ___/ //_/ / / / __ \ ",
-                             " / /_/ / /_/ / /__/ ,< / /_/ / /_/ / ",
-                             "/_____/\__,_/\___/_/|_|\__,_/ .___/  ",
-                             "                           /_/       ",
-                             "                                     "]
+        backup_ascii_line = ["   ______              _                   ",
+                             "  |  __  \            | |                  ",
+                             "  | |__)  ) ____  ____| |  _ _   _ ____    ",
+                             "  |  __  ( / _  |/ ___) | / ) | | |  _ \   ",
+                             "  | |__)  | ( | ( (___| |< (| |_| | | | |  ",
+                             "  |______/ \_||_|\____)_| \_)\____| ||_/   ",
+                             "                                  |_|      "]
         # New Robot
         newRobotFile = True
 
@@ -244,6 +243,7 @@ def compareFiles(selected_robots):
                     output_lines_current = []
                     output_lines_backup = []
 
+                    # Display ASCII title line by line
                     if newRobotFile:
                         for i in range(7): 
                             output_line = current_ascii_line[i]
@@ -260,6 +260,7 @@ def compareFiles(selected_robots):
                         line1 = lines1[i].strip() if i < len(lines1) else ""
                         line2 = lines2[i].strip() if i < len(lines2) else ""
 
+                        # Ignore header in .ls files. Code starts at /MN
                         if "/MN" in line1 or "/MN" in line2:
                             start_index = i
                             break
@@ -301,13 +302,17 @@ def compareFiles(selected_robots):
 
             current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
             output_file = os.path.join(robot_compare_folder, f"{robot_name} {current_date} - Comparison.txt")
+            
+            # Check if the file exists (occurs when comparing multiple times in one minute)
+            if os.path.exists(output_file):
+                print (f"A file already exists at {output_file}. Please wait a minute before executing this comparison.")
 
-            with open(output_file, "a", encoding="utf-8") as output:
-                output.write("\n".join(f"   {output_current:<75}  {output_backup}"
-                                    for output_current, output_backup in
-                                    zip(all_output_lines_current, all_output_lines_backup)))
-
-            print(f"Comparison completed for {robot_name}. The output has been saved to {output_file}.")
+            else:
+                with open(output_file, "a", encoding="utf-8") as output:
+                    output.write("\n".join(f"   {output_current:<75}  {output_backup}"
+                                for output_current, output_backup in
+                                zip(all_output_lines_current, all_output_lines_backup)))
+                print(f"Comparison completed for {robot_name}. The output has been saved to {output_file}.")
 
         except Exception as e:
             print(f"Failed to execute comparison for {robot_name}. Please ensure that there is a current file and a backup for this robot.")
@@ -435,6 +440,7 @@ def viewComparison(selected_robots):
                 startupinfo.dwXSize = 250
                 startupinfo.dwYSize = 500
                 subprocess.Popen([most_recent_file_path], shell=True, startupinfo=startupinfo)
+                print(f"Opened comparison file for {robot_name}")
             except OSError as e:
                 print(f"Error opening file: {e}")
             
