@@ -394,6 +394,8 @@ def backupFiles(selected_robots):
 
             # List file names
             files = ftp.nlst()
+            
+            print(f"Backing up {robot_name} . . .")
 
             # Download each file to the backup folder
             for file in files:
