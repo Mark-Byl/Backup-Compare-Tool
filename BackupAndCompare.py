@@ -1,14 +1,15 @@
 # Programmer: Mark Byl  
 # Date: 05/2023
 
+import datetime
+import ftplib
+import glob
+import json
+import os
+import shutil
+import socket
 import subprocess
 import tkinter as tk
-import ftplib
-import os
-import datetime
-import shutil
-import json
-import glob
 from time import time
 
 # List of IP addresses and corresponding robot names
@@ -418,9 +419,6 @@ def backupFiles(selected_robots):
         # Check the Current Project folder for any contents
         if not os.listdir(robot_current_folder):
             current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
-            robot_current_subfolder = os.path.join(robot_current_folder, current_date)
-            os.makedirs(robot_current_subfolder, exist_ok=True)
-
     
         # Check the Backup Project folder for any contents
         elif not os.listdir(robot_backup_folder):
@@ -435,10 +433,7 @@ def backupFiles(selected_robots):
             shutil.move(source_path, destination_path)
 
             print(f"{folder_name} moved successfully!")
-        
             current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
-            robot_current_subfolder = os.path.join(robot_current_folder, current_date)
-            os.makedirs(robot_current_subfolder, exist_ok=True)
 
         elif os.listdir(robot_backup_folder):
             # Move the existing Backups folder to Archive
@@ -464,15 +459,23 @@ def backupFiles(selected_robots):
             shutil.move(source_path, destination_path)
 
             print(f"{folder_name} moved successfully!")
-
             current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
-            robot_current_subfolder = os.path.join(robot_current_folder, current_date)
-            os.makedirs(robot_current_subfolder, exist_ok=True)
+
+            
 
         try:
+            # Timeout if failing to connect
+            timeout = 10
+            ftp_socket = socket.create_connection((ip_address, 21), timeout)
+            ftp = ftplib.FTP()
+            ftp.sock = ftp_socket
+
             # Connect to FTP server
-            ftp = ftplib.FTP(ip_address)
-            ftp.login("anon", "")  
+            ftp.connect(ip_address, 21)
+            ftp.login("anon", "") 
+
+            robot_current_subfolder = os.path.join(robot_current_folder, current_date)
+            os.makedirs(robot_current_subfolder, exist_ok=True)
 
             # List file names
             files = ftp.nlst()
