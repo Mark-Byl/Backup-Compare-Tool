@@ -11,7 +11,10 @@
 - Backups are automatically archived when you backup a newer robot program.
 
 # Customization
-- It is currently configured to compare .ls and .va files, but feel free to change this by editing FileExtension.json.
+- It is currently configured to only compare .ls files, but feel free to change this by editing FileExtension.json.
+- You can also add additional files to compare in FileExtension.json. These files will be compared first.
 - You can change the robot names and associated IP addresses by editing RobotInfo.json.
+
+- Note that the first line for .ls files is programmed to begin after finding /MN in the program, so it will not compare the header content.
 
 
