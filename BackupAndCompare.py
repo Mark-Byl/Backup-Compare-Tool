@@ -10,6 +10,7 @@ import os
 import shutil
 import socket
 import subprocess
+import threading
 import tkinter as tk
 from time import time
 
@@ -18,6 +19,9 @@ with open("RobotInfo.json", "r") as file:
     json_data = file.read()
 
 ip_addresses = json.loads(json_data)
+
+# Lock for synchronizing error message printing
+print_lock = threading.Lock()
 
 # Paths to the folders
 current_folder = os.path.join(os.getcwd(), "Current Project")
@@ -447,8 +451,8 @@ def backup_robot(ip_address, robot_name):
 
         # Move the folder to the backup folder
         shutil.move(source_path, destination_path)
-
-        print(f"{folder_name} moved successfully!")
+        with print_lock:
+            print(f"{folder_name} moved successfully!")
         current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
 
     elif os.listdir(robot_backup_folder):
@@ -461,8 +465,8 @@ def backup_robot(ip_address, robot_name):
 
         # Move the folder to the backup folder
         shutil.move(source_path, destination_path)
-
-        print(f"{folder_name} moved successfully!")
+        with print_lock:
+            print(f"{folder_name} moved successfully!")
 
         # Move the existing Current Project to Backups folder
         # Get the name of the folder to be moved
@@ -473,15 +477,15 @@ def backup_robot(ip_address, robot_name):
 
         # Move the folder to the backup folder
         shutil.move(source_path, destination_path)
-
-        print(f"{folder_name} moved successfully!")
+        with print_lock:
+            print(f"{folder_name} moved successfully!")
         current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
 
         
 
     try:
         # Timeout if failing to connect
-        timeout = 10
+        timeout = 7
         ftp_socket = socket.create_connection((ip_address, 21), timeout)
         ftp = ftplib.FTP()
         ftp.sock = ftp_socket
@@ -495,8 +499,8 @@ def backup_robot(ip_address, robot_name):
 
         # List file names
         files = ftp.nlst()
-
-        print(f"Backing up {robot_name} . . .")
+        with print_lock:
+            print(f"Backing up {robot_name} . . .")
         # Download each file to the backup folder
         for file in files:
             local_path = os.path.join(robot_current_subfolder, file)
@@ -505,10 +509,12 @@ def backup_robot(ip_address, robot_name):
 
         # Close FTP connection
         ftp.quit()
-        print(f"Backup from {ip_address} ({robot_name}) completed successfully.")
-
-    except ftplib.all_errors as e:
-        print(f"\nError connecting to {ip_address} ({robot_name}): {str(e)}")
+        with print_lock:
+            print(f"Backup from {ip_address} ({robot_name}) completed successfully.")
+        
+    except ftplib.all_errors:
+        with print_lock:
+            print(f"Error connecting to {ip_address} ({robot_name}).")
 
 def viewComparison(selected_robots):
     # Iterate over IP addresses and robot names
