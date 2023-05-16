@@ -519,10 +519,7 @@ def viewComparison(selected_robots):
             
             # Open text files in new window
             try:
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwXSize = 250
-                startupinfo.dwYSize = 500
-                subprocess.Popen([most_recent_file_path], shell=True, startupinfo=startupinfo)
+                subprocess.Popen([most_recent_file_path], shell=True)
                 print(f"Opened comparison file for {robot_name}")
             except OSError as e:
                 print(f"Error opening file: {e}")
