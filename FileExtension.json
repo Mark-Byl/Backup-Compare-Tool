@@ -1,4 +1,4 @@
 {
-    "fileExtensions": [".ls"],
+	"fileExtensions": [".ls"],
 	"additionalFiles": ["posreg.va", "numreg.va"]
 }
