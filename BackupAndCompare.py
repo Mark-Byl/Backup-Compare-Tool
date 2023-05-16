@@ -1,6 +1,7 @@
 # Programmer: Mark Byl  
 # Date: 05/2023
 
+import concurrent.futures
 import datetime
 import ftplib
 import glob
@@ -402,97 +403,112 @@ def compareFiles(selected_robots):
 
 ## Backup func
 def backupFiles(selected_robots):
-
-    # Iterate over IP addresses and robot names
-    for ip_address, robot_name in ip_addresses.items():
-        if robot_name not in selected_robots:
-            continue
-        # Determine the robot-specific folders
-        robot_current_folder = os.path.join(current_folder, robot_name)
-        robot_backup_folder = os.path.join(backup_folder, robot_name)
-        robot_archive_folder = os.path.join(archive_folder, robot_name)
-
-        # Create the folders if they don't exist
-        for folder in [robot_current_folder, robot_backup_folder, robot_archive_folder]:
-            os.makedirs(folder, exist_ok=True)
-
-        # Check the Current Project folder for any contents
-        if not os.listdir(robot_current_folder):
-            current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
-    
-        # Check the Backup Project folder for any contents
-        elif not os.listdir(robot_backup_folder):
-            # Move the existing Current Project to Backups folder
-            # Get the name of the folder to be moved
-            folder_name = os.listdir(robot_current_folder)[0]  # Assumes there is only one folder in the current folder
-
-            source_path = os.path.join(robot_current_folder, folder_name)
-            destination_path = os.path.join(robot_backup_folder, folder_name)
-
-            # Move the folder to the backup folder
-            shutil.move(source_path, destination_path)
-
-            print(f"{folder_name} moved successfully!")
-            current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
-
-        elif os.listdir(robot_backup_folder):
-            # Move the existing Backups folder to Archive
-            # Get the name of the folder to be moved
-            folder_name = os.listdir(robot_backup_folder)[0]  # Assumes there is only one folder in the backup folder
-
-            source_path = os.path.join(robot_backup_folder, folder_name)
-            destination_path = os.path.join(robot_archive_folder, folder_name)
-
-            # Move the folder to the backup folder
-            shutil.move(source_path, destination_path)
-
-            print(f"{folder_name} moved successfully!")
-
-            # Move the existing Current Project to Backups folder
-            # Get the name of the folder to be moved
-            folder_name = os.listdir(robot_current_folder)[0]  # Assumes there is only one folder in the current folder
-
-            source_path = os.path.join(robot_current_folder, folder_name)
-            destination_path = os.path.join(robot_backup_folder, folder_name)
-
-            # Move the folder to the backup folder
-            shutil.move(source_path, destination_path)
-
-            print(f"{folder_name} moved successfully!")
-            current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
-
+    # Using ThreadPoolExecutor
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        
+        backup_tasks = []
+        
+        # Iterate over IP addresses and robot names
+        for ip_address, robot_name in ip_addresses.items():
+            if robot_name not in selected_robots:
+                continue
             
+            # Define backup tasks
+            backup_tasks.append(executor.submit(backup_robot, ip_address, robot_name))
+        
+        # Wait for all backup tasks to complete
+        concurrent.futures.wait(backup_tasks)
+    
 
-        try:
-            # Timeout if failing to connect
-            timeout = 10
-            ftp_socket = socket.create_connection((ip_address, 21), timeout)
-            ftp = ftplib.FTP()
-            ftp.sock = ftp_socket
 
-            # Connect to FTP server
-            ftp.connect(ip_address, 21)
-            ftp.login("anon", "") 
+def backup_robot(ip_address, robot_name):
 
-            robot_current_subfolder = os.path.join(robot_current_folder, current_date)
-            os.makedirs(robot_current_subfolder, exist_ok=True)
+    # Determine the robot-specific folders
+    robot_current_folder = os.path.join(current_folder, robot_name)
+    robot_backup_folder = os.path.join(backup_folder, robot_name)
+    robot_archive_folder = os.path.join(archive_folder, robot_name)
 
-            # List file names
-            files = ftp.nlst()
+    # Create the folders if they don't exist
+    for folder in [robot_current_folder, robot_backup_folder, robot_archive_folder]:
+        os.makedirs(folder, exist_ok=True)
 
-            print(f"Backing up {robot_name} . . .")
-            # Download each file to the backup folder
-            for file in files:
-                local_path = os.path.join(robot_current_subfolder, file)
-                with open(local_path, "wb") as local_file:
-                    ftp.retrbinary("RETR " + file, local_file.write)
+    # Check the Current Project folder for any contents
+    if not os.listdir(robot_current_folder):
+        current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
 
-            # Close FTP connection
-            ftp.quit()
-            print(f"Backup from {ip_address} ({robot_name}) completed successfully.")
+    # Check the Backup Project folder for any contents
+    elif not os.listdir(robot_backup_folder):
+        # Move the existing Current Project to Backups folder
+        # Get the name of the folder to be moved
+        folder_name = os.listdir(robot_current_folder)[0]  # Assumes there is only one folder in the current folder
 
-        except ftplib.all_errors as e:
-            print(f"Error connecting to {ip_address} ({robot_name}): {str(e)}")
+        source_path = os.path.join(robot_current_folder, folder_name)
+        destination_path = os.path.join(robot_backup_folder, folder_name)
+
+        # Move the folder to the backup folder
+        shutil.move(source_path, destination_path)
+
+        print(f"{folder_name} moved successfully!")
+        current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
+
+    elif os.listdir(robot_backup_folder):
+        # Move the existing Backups folder to Archive
+        # Get the name of the folder to be moved
+        folder_name = os.listdir(robot_backup_folder)[0]  # Assumes there is only one folder in the backup folder
+
+        source_path = os.path.join(robot_backup_folder, folder_name)
+        destination_path = os.path.join(robot_archive_folder, folder_name)
+
+        # Move the folder to the backup folder
+        shutil.move(source_path, destination_path)
+
+        print(f"{folder_name} moved successfully!")
+
+        # Move the existing Current Project to Backups folder
+        # Get the name of the folder to be moved
+        folder_name = os.listdir(robot_current_folder)[0]  # Assumes there is only one folder in the current folder
+
+        source_path = os.path.join(robot_current_folder, folder_name)
+        destination_path = os.path.join(robot_backup_folder, folder_name)
+
+        # Move the folder to the backup folder
+        shutil.move(source_path, destination_path)
+
+        print(f"{folder_name} moved successfully!")
+        current_date = datetime.datetime.now().strftime("%d-%m-%Y-%H_%M")
+
+        
+
+    try:
+        # Timeout if failing to connect
+        timeout = 10
+        ftp_socket = socket.create_connection((ip_address, 21), timeout)
+        ftp = ftplib.FTP()
+        ftp.sock = ftp_socket
+
+        # Connect to FTP server
+        ftp.connect(ip_address, 21)
+        ftp.login("anon", "") 
+
+        robot_current_subfolder = os.path.join(robot_current_folder, current_date)
+        os.makedirs(robot_current_subfolder, exist_ok=True)
+
+        # List file names
+        files = ftp.nlst()
+
+        print(f"Backing up {robot_name} . . .")
+        # Download each file to the backup folder
+        for file in files:
+            local_path = os.path.join(robot_current_subfolder, file)
+            with open(local_path, "wb") as local_file:
+                ftp.retrbinary("RETR " + file, local_file.write)
+
+        # Close FTP connection
+        ftp.quit()
+        print(f"Backup from {ip_address} ({robot_name}) completed successfully.")
+
+    except ftplib.all_errors as e:
+        print(f"\nError connecting to {ip_address} ({robot_name}): {str(e)}")
 
 def viewComparison(selected_robots):
     # Iterate over IP addresses and robot names
