@@ -14,6 +14,12 @@ import threading
 import tkinter as tk
 from time import time
 
+
+# Get the directory of the python script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+json_file_path = os.path.join(current_dir, "RobotInfo.json")
+
+
 # List of IP addresses and corresponding robot names
 with open("RobotInfo.json", "r") as file:
     json_data = file.read()
@@ -165,6 +171,8 @@ class BackupCompareGUI:
 def compareFiles(selected_robots):
     
     # Determine which file extensions and files to compare, from json file
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    json_file_path = os.path.join(current_dir, "FileExtensions.json")
     with open("FileExtension.json", "r") as file:
         json_data = json.load(file)
 
